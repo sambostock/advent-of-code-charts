@@ -646,7 +646,8 @@
                 .then(data => this.loadPointsOverTime(data))
                 .then(data => this.loadStarsOverTime(data))
                 .then(data => this.loadDayVsTime(data))
-                .then(data => this.loadTimePerStar(data));
+                .then(data => this.loadTimePerStar(data))
+                .then(data => this.loadMemberCounts(data));
         }
 
         loadHr(data) {
@@ -1530,6 +1531,55 @@
                         },
                     })
             });
+
+            return data;
+        }
+
+        // We want to add a section that shows member counts:
+        // - Number of members in the leaderboard total
+        // - Number of members in the leaderboard having completed at least one star
+        // - Number of members in the leaderboard having at a podium place (1st, 2nd, 3rd) on at least one day
+        // - Number of members in the leaderboard having completed at least one star per day (so far)
+        // - Number of members in the leaderboard having completed all stars (so far)
+        loadMemberCounts(data) {
+            console.log(data);
+
+            const container = document.createElement("div");
+            this.graphs.appendChild(container);
+            const table = document.createElement("table");
+            table.title = "Member Metrics";
+            container.appendChild(table);
+
+            function addRow(label, value = '') {
+                const tr = document.createElement("tr")
+                const th = document.createElement("th");
+                const td = document.createElement("td");
+
+                th.innerText = label;
+                td.innerText = value;
+
+                tr.appendChild(th);
+                tr.appendChild(td);
+                table.appendChild(tr);
+            }
+
+            function extractMedalists(podiumKey) {
+                // We only want "Gold", "Silver", "Bronze" here, so we slice the first 3 podiums only
+                return new Set(Object.values(data.days).map(d => d[podiumKey].slice(0, 3).map(p => p.memberId)).flat());
+            }
+
+            addRow("Members");
+            addRow("Total", data.n_members);
+            // i.e. At least 1 star
+            addRow("Participated", data.members.filter(m => m.stars.length > 0).length);
+            const firstPuzzleMedalists = extractMedalists('podiumFirstPuzzle');
+            const secondPuzzleMedalists = extractMedalists('podium');
+            const anyPuzzleMedalists = new Set([...firstPuzzleMedalists, ...secondPuzzleMedalists]);
+
+            addRow("First Puzzle Medalists", firstPuzzleMedalists.size);
+            addRow("Second Puzzle Medalists", secondPuzzleMedalists.size);
+            addRow("Any Puzzle Medalists", anyPuzzleMedalists.size);
+            // ...
 
             return data;
         }
